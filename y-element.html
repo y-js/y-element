@@ -1,0 +1,157 @@
+<link rel="import" href="../polymer/polymer.html">
+<script src="../yjs/y.js"></script>
+<script src="../y-array/y-array.js"></script>
+<script src="../y-map/y-map.js"></script>
+
+<!--
+# &lt;y-element&gt;
+Polymer Web Component for sharing data with [Yjs](https://github.com/y-js/yjs/)
+
+@demo demo/index.html 
+-->
+
+<dom-module id="y-element">
+  <template>
+    <style>
+      :host {
+        display: none;
+      }
+    </style>
+    <content id="x"></content>
+  </template>
+
+  <script>
+    Polymer({
+      ready: function () {
+        this.async(() => {
+          this.connector = this.connector || {}
+          if (this.connectorName != null) {
+            this.connector.name = this.connectorName
+          }
+          if (this.connectorRoom != null) {
+            this.connector.room = this.connectorRoom
+          }
+          if (this.connectorUrl != null) {
+            this.connector.url = this.connectorUrl
+          }
+          this.db = this.db || {}
+          if (this.dbName != null) {
+            this.db.name = this.dbName
+          }
+          var share = {}
+          for (var i = 0; i < this.children.length; i++) {
+            var node = this.children[i]
+
+            if (node.nodeName === 'Y-ARRAY') {
+              if (node.name == null) {
+                throw new Error('You must specify the "name" property on y-array')
+              }
+              share[node.name] = 'Array' 
+            } else if (node.nodeName === 'Y-MAP') {
+              if (node.name === null) {
+                throw new Error('You must specify the "name" property on y-map')
+              }
+              share[node.name] = 'Map'
+            }
+          }self
+          if (Object.keys(share).length === 0) {
+            throw new Error('You did not specify shared properties!')
+          }
+          var self = this
+          this.y = Y({
+            db: this.db,
+            connector: this.connector,
+            share: share,
+            sourceDir: '/bower_components/'
+          }).then(function (y) {
+            self.y = y
+            for (var i = 0; i < self.children; i++) {
+              var node = self.children[i]
+              if (node._sharedPropertyReady != null) {
+                node._sharedPropertyReady(y.share[node.name])
+              }
+            }
+          })
+        })
+      },
+      is: 'y-element',
+
+      properties: {
+        connector: {
+          type: Object,
+          notify: true
+        },
+        connectorName: {
+          type: String,
+          notify: true
+        },
+        connectorRoom: {
+          type: String,
+          notify: true
+        },
+        connectorUrl: {
+          type: String,
+          notify: true
+        },
+        db: {
+          type: Object,
+          notify: true
+        },
+        dbName: {
+          type: String,
+          notify: true
+        }
+      }
+
+    });
+  </script>
+</dom-module>
+
+
+<!--
+`y-array`
+Configuration for a shared array property
+
+@demo demo/index.html 
+-->
+
+<dom-module id="y-array">
+  <template>
+    <style>
+      :host {
+        display: none;
+      }
+    </style>
+  </template>
+
+  <script>
+    Polymer({
+      ready: function () {
+        console.log('array ready')
+      },
+      is: 'y-array',
+
+      properties: {
+        name: {
+          type: String,
+          notify: true
+        },
+        data: {
+          type: Array,
+          notify: true
+        },
+        type: {
+          type: String,
+          value: 'Array',
+          readOnly: true
+        }
+      },
+
+      _sharedPropertyReady: function (array) {
+        this.data = array.toArray()
+      }
+
+    });
+  </script>
+</dom-module>
+
