@@ -14,6 +14,10 @@
     "web-component-tester": "^4.0.0",
     "webcomponentsjs": "webcomponents/webcomponentsjs#^0.7.0",
     "y-text": "^9.0.2",
-    "y-richtext": "^9.0.1"
+    "y-richtext": "^9.0.1",
+    "quill.tar": "https://github.com/quilljs/quill/releases/download/v1.0.6/quill.tar.gz",
+    "quill-element": "^0.0.3",
+    "y-memory": "^8.0.7",
+    "y-websockets-client": "^8.0.11"
   }
 }
