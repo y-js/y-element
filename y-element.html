@@ -192,7 +192,10 @@ Configuration for a shared array property
             return // already filled
           }
         }
-        
+        if (change.value instanceof Y.utils.CustomType) {
+          // We can safely ignore this (don't wanna catch this anyway)
+          return
+        }
         this._mutualExcluse(() => {
           if (change) {
             var path = change.path.split('.').slice(1) // convert from "data.#1.pname" to ['#1', 'pname']
@@ -243,9 +246,9 @@ Configuration for a shared array property
         })
       },
       _addObserver: function (path, type) {
-        if (type instanceof Y.Array.typeDefinition.class) {
+        if (type && type.constructor === Y.Array.typeDefinition.class) {
           return this._addObserverToYArray(path, type)
-        } else if (type instanceof Y.Map.typeDefinition.class) {
+        } else if (type && type.constructor === Y.Map.typeDefinition.class) {
           return this._addObserverToYMap(path, type)
         } else {
           return type // neither Y.Map nor Y.Array -> don't convert to Array
@@ -253,19 +256,30 @@ Configuration for a shared array property
       },
       _addObserverToYArray: function (path, yarray) {
         yarray.observe(event => {
-          this._mutualExcluse(() => {
-            if (event.type === 'delete') {
-              this.splice(path, event.index, event.length)
-            } else if (event.type === 'insert') {
-              var values = event.values.map(this._addObserver.bind(this))
-              this.splice.apply(this, [path, event.index, 0].concat(values))
-            }
-          })
+          if (event.type === 'insert' &&
+                event.values[0] instanceof Y.utils.CustomType &&
+                event.values[0].constructor !== Y.Array.typeDefinition.class &&
+                event.values[0].constructor !== Y.Map.typeDefinition.class
+          ) {
+            // always set type if values contains a custom type!
+            this.splice.apply(this, [path, event.index, values.length].concat(event.values))
+          } else {
+            this._mutualExcluse(() => {
+              if (event.type === 'delete') {
+                this.splice(path, event.index, event.length)
+              } else if (event.type === 'insert') {
+                var values = event.values.map((v, i) => {
+                  return this._addObserver(path + '.#' + i, v)
+                })
+                this.splice.apply(this, [path, event.index, 0].concat(values))
+              }
+            })
+          }
         })
         return yarray.toArray().map((val, i)=> {
-          if (val instanceof Y.Array.typeDefinition.class) {
+          if (val && val.constructor === Y.Array.typeDefinition.class) {
             return this._addObserverToYArray(path + '.#' + i, val)
-          } else if (val instanceof Y.Map.typeDefinition.class) {
+          } else if (val && val.constructor === Y.Map.typeDefinition.class) {
             return this._addObserverToYMap(path + '.#' + i, val)
           } else {
             return val
@@ -274,16 +288,52 @@ Configuration for a shared array property
       },
       _addObserverToYMap: function (path, ymap) {
         ymap.observe(event => {
-          this._mutualExcluse(() => {
-            if (event.type === 'update' || event.type === 'add') {
-              debugger
-              this.set(path, event.key, event.value)
-            } else if (event.type === 'delete') {
-              // wait for Polymer/polymer#2631 Set to null instead of deleting for now
-              this.set(path, null)
+          if (event.value != null &&
+                event.value instanceof Y.utils.CustomType &&
+                event.value.constructor !== Y.Array.typeDefinition.class &&
+                event.value.constructor !== Y.Map.typeDefinition.class
+          ) {
+            // alsways throw if value is a custom type!
+            // we overwrite the path manually.. see here https://www.polymer-project.org/1.0/docs/devguide/model-data#notify-path
+            var p = path.split('.').slice(1)
+            var t = this.data
+            var l
+            for(var i = 0; i < p.length; i++) {
+              l = p[i]
+              if (l[0] === '#') {
+                t = this.data[Number.parseInt(l.slice(1))]
+              } else {
+                t = this.data[l]
+              }
             }
-          })
+            t[event.name] = event.value
+            this.notifyPath(path)
+          } else {
+            this._mutualExcluse(() => {
+              var p = path + '.' + event.name
+              if (event.type === 'update' || event.type === 'add') {
+                this.set(p, this._addObserver(p, event.value))
+              } else if (event.type === 'delete') {
+                // wait for Polymer/polymer#2631 Set to null instead of deleting for now
+                this.set(p, null)
+              }
+            })
+          }
         })
+        var keys = ymap.keys()
+        var result = {}
+        for (var i = 0; i < keys.length; i++) {
+          var key = keys[i]
+          var val = ymap.get(key)
+          if (val && val.constructor === Y.Array.typeDefinition.class) {
+            result[key] = this._addObserverToYArray(path + '.' + key, val)
+          } else if (val && val.constructor === Y.Map.typeDefinition.class) {
+            result[key] = this._addObserverToYMap(path + '.' + key, val)
+          } else {
+            result[key] = val
+          }
+        }
+        return result
       }
     });
   </script>
