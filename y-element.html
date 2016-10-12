@@ -7,7 +7,7 @@
 # &lt;y-element&gt;
 Polymer Web Component for sharing data with [Yjs](https://github.com/y-js/yjs/)
 
-@demo demo/index.html 
+@demo demo/index.html
 -->
 
 <dom-module id="y-element">
@@ -22,8 +22,11 @@ Polymer Web Component for sharing data with [Yjs](https://github.com/y-js/yjs/)
 
   <script>
     Polymer({
-      ready: function () {
-        this.async(() => {
+      reload: function () {
+        if (!this.isReady) {
+          return
+        }
+        this._mutualExcluse(() => {
           this.connector = this.connector || {}
           if (this.connectorName != null) {
             this.connector.name = this.connectorName
@@ -38,20 +41,36 @@ Polymer Web Component for sharing data with [Yjs](https://github.com/y-js/yjs/)
           if (this.dbName != null) {
             this.db.name = this.dbName
           }
+          if (this.connector.room == null) {
+            return
+          }
           var share = {}
           for (var i = 0; i < this.children.length; i++) {
             var node = this.children[i]
             if (node._sharedPropertyReady != null) {
               if (node.name == null) {
-                throw new Error('You must specify the "name" property on type definitions!')
+                console.warn('You must specify the "name" property on type definitions!')
+                return
               }
               share[node.name] = node.type
             } else {
-              throw new Error('<y-element> must only contain valid configurations. The element <' + node.nodeName + '> is not recognized as a valid configuration for <y-element>!')
+              console.warn('<y-element> must only contain valid configurations. The element <' + node.nodeName + '> is not recognized as a valid configuration for <y-element>!')
+              return
             }
           }
           if (Object.keys(share).length === 0) {
-            throw new Error('You did not specify shared properties!')
+            console.warn('You did not specify shared properties!')
+            return
+          }
+          if (this.y != null) {
+            // cleanup if it already exists
+            if (this.y instanceof Promise) {
+              this.y.then(function (y) {
+                y.destroy()
+              })
+            } else {
+              this.y.destroy()
+            }
           }
           var self = this
           this.y = Y({
@@ -70,32 +89,57 @@ Polymer Web Component for sharing data with [Yjs](https://github.com/y-js/yjs/)
           })
         })
       },
+      ready: function () {
+        this.async(() => {
+          this.isReady = true
+          var token = true
+          this._mutualExcluse = function mutualExcluse (f) {
+            if (token) {
+              token = false
+              try {
+                f()
+              } catch (e) {
+                token = true
+                throw new Error(e)
+              }
+              token = true
+            }
+          }
+          this.reload()
+        })
+      },
       is: 'y-element',
 
       properties: {
         connector: {
           type: Object,
-          notify: true
+          notify: true,
+          observer: 'reload'
         },
         connectorName: {
           type: String,
-          notify: true
+          notify: true,
+          observer: 'reload'
         },
         connectorRoom: {
           type: String,
-          notify: true
+          notify: true,
+          observer: 'reload'
         },
         connectorUrl: {
           type: String,
-          notify: true
+          notify: true,
+          observer: 'reload'
         },
         db: {
           type: Object,
-          notify: true
+          notify: true,
+          observer: 'reload'
         },
         dbName: {
           type: String,
-          notify: true
+          notify: true,
+          observer: 'reload'
         }
       }
 
@@ -138,16 +182,26 @@ Polymer Web Component for sharing data with [Yjs](https://github.com/y-js/yjs/)
       }
       // copies values from val to type
       function fillType (type, val) {
+        var v, t
         if (val != null && val.constructor === Array) {
           type.insert(0, val.map(getConvertType))
           for (var i = 0; i < val.length; i++) {
-            fillType(type.get(i), val[i])
+            t = type.get(i)
+            v = val[i]
+            fillType(t, v)
+            if (v.typeDefinition != null) {
+              val[i] = { type: t }
+            }
           }
         } else if (val != null && val.constructor === Object) {
           for (var name in val) {
-            var v = val[name]
+            v = val[name]
             type.set(name, getConvertType(v))
-            fillType(type.get(name), v)
+            t = type.get(name)
+            fillType(t, v)
+            if (v.typeDefinition != null) {
+              val[name] = { type: t }
+            }
           }
         } else {
           return // already filled
@@ -158,13 +212,14 @@ Polymer Web Component for sharing data with [Yjs](https://github.com/y-js/yjs/)
         return
       }
       this._mutualExcluse(() => {
+        var i
         if (change) {
           var path = change.path.split('.').slice(1) // convert from "data.#1.pname" to ['#1', 'pname']
           // Think of the last element in path as the action:
           // E.g. let path = ['prop', 'sub']
           // -> it means to set 'sub' on the 'prop' subproperty. I.e. this.data.prop.set('sub', change.value)
           var type = this.sharedType
-          for (var i = 0; i + 1 < path.length; i++) {
+          for (i = 0; i + 1 < path.length; i++) {
             var route = path[i]
             if (i === path.length - 1 && route === 'splices') {
               break
@@ -185,7 +240,11 @@ Polymer Web Component for sharing data with [Yjs](https://github.com/y-js/yjs/)
               for (var i = 0; i < s.addedCount; i++) {
                 var val = s.object[s.index + i]
                 type.insert(s.index + i, [getConvertType(val)])
-                fillType(type.get(s.index + i), val)
+                var t = type.get(s.index + i)
+                fillType(t, val)
+                if (val.typeDefinition != null) {
+                  s.object[s.index + i] = { type: t }
+                }
               }
             })
           } else if (action.startsWith('#')) {
@@ -193,7 +252,19 @@ Polymer Web Component for sharing data with [Yjs](https://github.com/y-js/yjs/)
           } else {
             var val = change.value
             type.set(action, getConvertType(val))
-            fillType(type.get(action), val)
+            var t = type.get(action)
+            fillType(t, val)
+            if (val.typeDefinition != null) {
+              var p = change.path.split('.').slice(0, -1).map(function (o) {
+                if (o[0] === '#') {
+                  return o.slice(1)
+                } else {
+                  return o
+                }
+              }).join('.')
+              var obj = this.get(p)
+              obj[action] = { type: t }
+            }
           }
         }
       })
@@ -203,88 +274,47 @@ Polymer Web Component for sharing data with [Yjs](https://github.com/y-js/yjs/)
         return this._addObserverToYArray(path, type)
       } else if (type && type.constructor === Y.Map.typeDefinition.class) {
         return this._addObserverToYMap(path, type)
+      } else if (type instanceof Y.utils.CustomType) {
+        return { type: type } // Add a type wrapper
       } else {
-        return type // neither Y.Map nor Y.Array -> don't convert to Array
+        return type
       }
     },
     _addObserverToYArray: function (path, yarray) {
       yarray.observe(event => {
-        if (event.type === 'insert' &&
-              event.values[0] instanceof Y.utils.CustomType &&
-              event.values[0].constructor !== Y.Array.typeDefinition.class &&
-              event.values[0].constructor !== Y.Map.typeDefinition.class
-        ) {
-          // always set type if values contains a custom type!
-          this.splice.apply(this, [path, event.index, values.length].concat(event.values))
-        } else {
-          this._mutualExcluse(() => {
-            if (event.type === 'delete') {
-              this.splice(path, event.index, event.length)
-            } else if (event.type === 'insert') {
-              var values = event.values.map((v, i) => {
-                return this._addObserver(path + '.#' + i, v)
-              })
-              this.splice.apply(this, [path, event.index, 0].concat(values))
-            }
-          })
-        }
+        this._mutualExcluse(() => {
+          if (event.type === 'delete') {
+            this.splice(path, event.index, event.length)
+          } else if (event.type === 'insert') {
+            var values = event.values.map((v, i) => {
+              return this._addObserver(path + '.' + i, v)
+            })
+            this.splice.apply(this, [path, event.index, 0].concat(values))
+          }
+        })
       })
       return yarray.toArray().map((val, i)=> {
-        if (val && val.constructor === Y.Array.typeDefinition.class) {
-          return this._addObserverToYArray(path + '.#' + i, val)
-        } else if (val && val.constructor === Y.Map.typeDefinition.class) {
-          return this._addObserverToYMap(path + '.#' + i, val)
-        } else {
-          return val
-        }
+        return this._addObserver(path + '.' + i, val)
       })
     },
     _addObserverToYMap: function (path, ymap) {
       ymap.observe(event => {
-        if (event.value != null &&
-              event.value instanceof Y.utils.CustomType &&
-              event.value.constructor !== Y.Array.typeDefinition.class &&
-              event.value.constructor !== Y.Map.typeDefinition.class
-        ) {
-          // alsways throw if value is a custom type!
-          // we overwrite the path manually.. see here https://www.polymer-project.org/1.0/docs/devguide/model-data#notify-path
-          var p = path.split('.').slice(1)
-          var t = this.data
-          var l
-          for(var i = 0; i < p.length; i++) {
-            l = p[i]
-            if (l[0] === '#') {
-              t = this.data[Number.parseInt(l.slice(1))]
-            } else {
-              t = this.data[l]
-            }
+        this._mutualExcluse(() => {
+          var p = path + '.' + event.name
+          if (event.type === 'update' || event.type === 'add') {
+            this.set(p, this._addObserver(p, event.value))
+          } else if (event.type === 'delete') {
+            // wait for Polymer/polymer#2631 Set to null instead of deleting for now
+            this.set(p, null)
           }
-          t[event.name] = event.value
-          this.notifyPath(path)
-        } else {
-          this._mutualExcluse(() => {
-            var p = path + '.' + event.name
-            if (event.type === 'update' || event.type === 'add') {
-              this.set(p, this._addObserver(p, event.value))
-            } else if (event.type === 'delete') {
-              // wait for Polymer/polymer#2631 Set to null instead of deleting for now
-              this.set(p, null)
-            }
-          })
-        }
+        })
       })
       var keys = ymap.keys()
       var result = {}
       for (var i = 0; i < keys.length; i++) {
         var key = keys[i]
         var val = ymap.get(key)
-        if (val && val.constructor === Y.Array.typeDefinition.class) {
-          result[key] = this._addObserverToYArray(path + '.' + key, val)
-        } else if (val && val.constructor === Y.Map.typeDefinition.class) {
-          result[key] = this._addObserverToYMap(path + '.' + key, val)
-        } else {
-          result[key] = val
-        }
+        result[key] = this._addObserver(path + '.' + i, val)
       }
       return result
     }
