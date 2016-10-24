@@ -22,10 +22,24 @@ Polymer Web Component for sharing data with [Yjs](https://github.com/y-js/yjs/)
 
   <script>
     Polymer({
-      reload: function () {
+      queueReload: function () {
         if (!this.isReady) {
           return
         }
+        this._mutualExcluse(() => {
+          if (this._queueReloadTimeout == null) {
+            var self = this
+            this._queueReloadTimeout = setTimeout(function () { self.reload() }, 0)
+          }
+        })
+      },
+      reload: function () {
+        clearTimeout(this._queueReloadTimeout)
+        this._queueReloadTimeout = null
+        if (!this.isReady) {
+          return
+        }
+        // we use mutualExcluse so that the changes made here to, for example, this.connector, do not call his function again (observer triggers queueReload)
         this._mutualExcluse(() => {
           this.connector = this.connector || {}
           if (this.connectorName != null) {
@@ -34,8 +48,14 @@ Polymer Web Component for sharing data with [Yjs](https://github.com/y-js/yjs/)
           if (this.connectorRoom != null) {
             this.connector.room = this.connectorRoom
           }
+          if (this.connectorAuth != null) {
+            this.connector.auth = this.connectorAuth
+          }
           if (this.connectorUrl != null) {
             this.connector.url = this.connectorUrl
+          }
+          if (this.connectorDebug != null) {
+            this.connector.debug = this.connectorDebug
           }
           this.db = this.db || {}
           if (this.dbName != null) {
@@ -63,14 +83,10 @@ Polymer Web Component for sharing data with [Yjs](https://github.com/y-js/yjs/)
             return
           }
           if (this.y != null) {
-            // cleanup if it already exists
-            if (this.y instanceof Promise) {
-              this.y.then(function (y) {
-                y.destroy()
-              })
-            } else {
-              this.y.destroy()
-            }
+            // cleanup if an instance was already created
+            this.y.then(function (y) {
+              y.destroy()
+            })
           }
           var self = this
           this.y = Y({
@@ -78,8 +94,8 @@ Polymer Web Component for sharing data with [Yjs](https://github.com/y-js/yjs/)
             connector: this.connector,
             share: share,
             sourceDir: '/bower_components/'
-          }).then(function (y) {
-            self.y = y
+          })
+          this.y.then(function (y) {
             for (var i = 0; i < self.children.length; i++) {
               var node = self.children[i]
               if (node._sharedPropertyReady != null) {
@@ -90,6 +106,7 @@ Polymer Web Component for sharing data with [Yjs](https://github.com/y-js/yjs/)
         })
       },
       ready: function () {
+        this._queueReloadTimeout = null
         this.async(() => {
           this.isReady = true
           var token = true
@@ -105,7 +122,7 @@ Polymer Web Component for sharing data with [Yjs](https://github.com/y-js/yjs/)
               token = true
             }
           }
-          this.reload()
+          this.queueReload()
         })
       },
       is: 'y-element',
@@ -114,32 +131,43 @@ Polymer Web Component for sharing data with [Yjs](https://github.com/y-js/yjs/)
         connector: {
           type: Object,
           notify: true,
-          observer: 'reload'
+          observer: 'queueReload'
         },
         connectorName: {
           type: String,
           notify: true,
-          observer: 'reload'
+          observer: 'queueReload'
+        },
+        connectorAuth: {
+          type: String,
+          notify: true,
+          observer: 'queueReload'
         },
         connectorRoom: {
           type: String,
           notify: true,
-          observer: 'reload'
+          observer: 'queueReload'
         },
         connectorUrl: {
           type: String,
           notify: true,
-          observer: 'reload'
+          observer: 'queueReload'
+        },
+        connectorDebug: {
+          type: Boolean,
+          notify: true,
+          observer: 'queueReload',
+          value: false
         },
         db: {
           type: Object,
           notify: true,
-          observer: 'reload'
+          observer: 'queueReload'
         },
         dbName: {
           type: String,
           notify: true,
-          observer: 'reload'
+          observer: 'queueReload'
         }
       }
 
