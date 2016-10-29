@@ -24,11 +24,8 @@ Polymer Web Component for sharing data with [Yjs](https://github.com/y-js/yjs/)
     Polymer({
       queueReload: function () {
         var self = this
-        if (!this.isReady) {
-          return
-        }
-        if (self._queueReloadTimeout == null) {
-          self._queueReloadTimeout = setTimeout(function () { self.reload() }, 0)
+        if (this.isReady && this._queueReloadTimeout == null) {
+          this._queueReloadTimeout = setTimeout(function () { self.reload() }, 0)
         }
       },
       reload: function () {
@@ -56,50 +53,54 @@ Polymer Web Component for sharing data with [Yjs](https://github.com/y-js/yjs/)
         if (this.dbName != null) {
           this.db.name = this.dbName
         }
-        if (this.connector.room == null) {
-          return
-        }
-        var share = {}
-        for (var i = 0; i < this.children.length; i++) {
-          var node = this.children[i]
-          if (node._sharedPropertyReady != null) {
-            if (node.name == null) {
-              console.warn('You must specify the "name" property on type definitions!')
-              return
-            }
-            share[node.name] = node.type
-          } else {
-            console.warn('<y-element> must only contain valid configurations. The element <' + node.nodeName + '> is not recognized as a valid configuration for <y-element>!')
-            return
+        try {
+          if (this.connector.room == null) {
+            throw null
           }
-        }
-        if (Object.keys(share).length === 0) {
-          console.warn('You did not specify shared properties!')
-          return
-        }
-        if (this.y != null) {
-          // cleanup if an instance was already created
-          this.y.then(function (y) {
-            y.destroy()
-          })
-        }
-        this.y = Y({
-          db: this.db,
-          connector: this.connector,
-          share: share,
-          sourceDir: '/bower_components/'
-        })
-        this.y.then(function (y) {
-          for (var i = 0; i < self.children.length; i++) {
-            var node = self.children[i]
+          var share = {}
+          for (var i = 0; i < this.children.length; i++) {
+            var node = this.children[i]
             if (node._sharedPropertyReady != null) {
-              node._sharedPropertyReady(y.share[node.name])
+              if (node.name == null) {
+                throw new Error('You must specify the "name" property on type definitions!')
+              }
+              share[node.name] = node.type
+            } else {
+              throw new Error('<y-element> must only contain valid configurations. The element <' + node.nodeName + '> is not recognized as a valid configuration for <y-element>!')
             }
           }
-        })
-        // make sure ready is not called again
-        clearTimeout(this._queueReloadTimeout)
-        this._queueReloadTimeout = null
+          if (Object.keys(share).length === 0) {
+            console.warn('You did not specify shared properties!')
+            throw null
+          }
+          if (this.y != null) {
+            // cleanup if an instance was already created
+            this.y.then(function (y) {
+              y.destroy()
+            })
+          }
+          this.y = Y({
+            db: this.db,
+            connector: this.connector,
+            share: share,
+            sourceDir: '/bower_components/'
+          })
+          this.y.then(function (y) {
+            for (var i = 0; i < self.children.length; i++) {
+              var node = self.children[i]
+              if (node._sharedPropertyReady != null) {
+                node._sharedPropertyReady(y.share[node.name])
+              }
+            }
+          })
+        } catch (err) {
+          // make sure ready is not called again
+          clearTimeout(this._queueReloadTimeout)
+          this._queueReloadTimeout = null
+          if (err != null) {
+            throw err
+          }
+        }
       },
       ready: function () {
         var self = this
