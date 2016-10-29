@@ -70,8 +70,7 @@ Polymer Web Component for sharing data with [Yjs](https://github.com/y-js/yjs/)
             }
           }
           if (Object.keys(share).length === 0) {
-            console.warn('You did not specify shared properties!')
-            throw null
+            throw new Error('You did not specify shared properties!')
           }
           if (this.y != null) {
             // cleanup if an instance was already created
@@ -101,6 +100,8 @@ Polymer Web Component for sharing data with [Yjs](https://github.com/y-js/yjs/)
             throw err
           }
         }
+        clearTimeout(this._queueReloadTimeout)
+        this._queueReloadTimeout = null
       },
       ready: function () {
         var self = this
