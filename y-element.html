@@ -97,6 +97,9 @@ Polymer Web Component for sharing data with [Yjs](https://github.com/y-js/yjs/)
               }
               self.y = y
               self._reloading = false
+              if (!self.connected) {
+                self.y.disconnect()
+              }
               if (self.closed) {
                 self.close()
               } else {
@@ -136,8 +139,29 @@ Polymer Web Component for sharing data with [Yjs](https://github.com/y-js/yjs/)
           self.queueReload()
         })
       },
+      attached: function () {
+        this.closed = false
+      },
+      detached: function () {
+        this.closed = true
+      },
+      _connectedChanged: function (connected) {
+        if (this.y != null) {
+          if (connected) {
+            this.y.reconnect()
+          } else {
+            this.y.disconnect()
+          }
+        }
+      },
       is: 'y-element',
       properties: {
+        connected: {
+          type: Boolean,
+          notify: true,
+          value: true,
+          observer: '_connectedChanged'
+        },
         connector: {
           type: Object,
           notify: true,
