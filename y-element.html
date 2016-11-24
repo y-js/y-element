@@ -5,7 +5,51 @@
 
 <!--
 # &lt;y-element&gt;
-Polymer Web Component for sharing data with [Yjs](https://github.com/y-js/yjs/)
+> Polymer Web Component for sharing data with [Yjs](https://github.com/y-js/yjs/). Perform data-binding on shared data!
+
+This repository contains four elements:
+
+<ul>
+  <li>[y-element](//y-js.org/y-element/components/y-element/#y-element) - Used to specify the database and connector information</li>
+  <li>[y-map](//y-js.org/y-element/components/y-element/#y-map) - Used to specify a map type. It exports the data as a shared javascript object</li>
+  <li>[y-array](//y-js.org/y-element/components/y-element/#y-array) - Used to specify an array type. It exports the data as a shared javascript array</li>
+  <li>[y-type](//y-js.org/y-element/components/y-element/#y-type) - Used to specify any Yjs type. The exported data does not support data-binding</li>
+</ul>
+
+##### Simple Yjs example in Javascript
+```
+Y({
+  db: {
+    name: 'memory'
+  },
+  connector: {
+    name: 'websockets-client',
+    room: 'example'
+  },
+  share: {
+    map: 'Map'
+  }
+}).then(function (y) {
+  y.share.map // is the shared map type
+})
+```
+
+##### Same example in Polymer
+```
+<y-element
+  db-name="memory"
+  connector-name="websockets-client"
+  connector-room="example">
+  <y-map name="map" data="{{myMap}}"></y-map>
+</y-element>
+```
+
+### Before you start
+Before you start remember to install all y-* you want to use. In particular you need to install a connector (e.g. `y-websockets-client`), and a database adapter (e.g. `y-memory`). `yjs`, `y-map`, and `y-array` are dependencies of `y-element`.
+
+```
+bower i --save y-element y-memory y-websockets-client
+``` 
 
 @demo demo/index.html
 -->
@@ -22,13 +66,13 @@ Polymer Web Component for sharing data with [Yjs](https://github.com/y-js/yjs/)
 
   <script>
     Polymer({
-      queueReload: function () {
+      _queueReload: function () {
         var self = this
         if (this.isReady && !this._reloading) {
           // try to reload in next tick
           this.cancelAsync(this._asyncHandler)
           this._asyncHandler = this.async(function () {
-            self.reload();
+            self._reload();
             // stop any remaining async procs
             this.cancelAsync(self._asyncHandler)
             self._asyncHandler = null
@@ -38,7 +82,7 @@ Polymer Web Component for sharing data with [Yjs](https://github.com/y-js/yjs/)
           this._performReload = true
         }
       },
-      reload: function () {
+      _reload: function () {
         var self = this
         if (!this.isReady || this._reloading || this.closed) {
           return
@@ -92,7 +136,6 @@ Polymer Web Component for sharing data with [Yjs](https://github.com/y-js/yjs/)
               sourceDir: '/bower_components/'
             }).then(function (y) {
               if (self.y != null) {
-                debugger
                 self.y.close()
               }
               self.y = y
@@ -111,7 +154,7 @@ Polymer Web Component for sharing data with [Yjs](https://github.com/y-js/yjs/)
                 }
                 // now the next iteration can begin (if there is any)
                 if (self._performReload) {
-                  self.reload()
+                  self._reload()
                 }
               }
             })
@@ -136,7 +179,7 @@ Polymer Web Component for sharing data with [Yjs](https://github.com/y-js/yjs/)
         this._whenClosed = Promise.resolve()
         this.async(function () {
           self.isReady = true
-          self.queueReload()
+          self._queueReload()
         })
       },
       attached: function () {
@@ -156,53 +199,83 @@ Polymer Web Component for sharing data with [Yjs](https://github.com/y-js/yjs/)
       },
       is: 'y-element',
       properties: {
+        /**
+         * Whether to establish a connection. Set `connected = false` if you don't want to receive updates of the shared data
+         */
         connected: {
           type: Boolean,
           notify: true,
           value: true,
           observer: '_connectedChanged'
         },
+        /**
+         *Connector configuration
+         */
         connector: {
           type: Object,
           notify: true,
-          observer: 'queueReload'
+          observer: '_queueReload'
         },
+        /**
+         * The module-name of the connector. Overwrites `connector.name`
+         */ 
         connectorName: {
           type: String,
           notify: true,
-          observer: 'queueReload'
+          observer: '_queueReload'
         },
+        /**
+         * Authentication information for the connector. Overwrites `connector.auth 
+         */
         connectorAuth: {
           type: String,
           notify: true,
-          observer: 'queueReload'
+          observer: '_queueReload'
         },
+        /**
+         * The room in which to share data. Overwrites `connector.room`
+         */
         connectorRoom: {
           type: String,
           notify: true,
-          observer: 'queueReload'
+          observer: '_queueReload'
         },
+        /**
+         * The connection end-point of the connector. Overwrites `connector.url`
+         */
         connectorUrl: {
           type: String,
           notify: true,
-          observer: 'queueReload'
+          observer: '_queueReload'
         },
+        /**
+         * Whether to log debug data of the connector. Overwrites `connector.debug`
+         */
         connectorDebug: {
           type: Boolean,
           notify: true,
-          observer: 'queueReload',
+          observer: '_queueReload',
           value: false
         },
+        /**
+         * Database adapter configuration
+         */
         db: {
           type: Object,
           notify: true,
-          observer: 'queueReload'
+          observer: '_queueReload'
         },
+        /**
+         * The module-name of the db. Overwrites `db.name`
+         */
         dbName: {
           type: String,
           notify: true,
-          observer: 'queueReload'
+          observer: '_queueReload'
         },
+        /**
+         * Whether to close the Yjs instance. If `closed = true` the types are removed and the current Yjs instance is removed
+         */
         closed: {
           type: Boolean,
           notify: true,
@@ -210,9 +283,15 @@ Polymer Web Component for sharing data with [Yjs](https://github.com/y-js/yjs/)
           value: false
         }
       },
+      /**
+       * Try to open the specified Yjs instance. Counterpart to `this.close()`. Equivalent to `this.closed = false`
+       */
       open: function (open) {
         return this.close(!(open == null) || !open)
       },
+      /**
+       * Close the created Yjs instance. After calling this method all types are removed
+       */
       close: function (close) {
         if (close == null || close === true) {
           if (this.y != null) {
@@ -228,7 +307,7 @@ Polymer Web Component for sharing data with [Yjs](https://github.com/y-js/yjs/)
           }
           return this._whenClosed
         } else {
-          this.queueReload()
+          this._queueReload()
           return Promise.resolve()
         }
       }
@@ -237,24 +316,8 @@ Polymer Web Component for sharing data with [Yjs](https://github.com/y-js/yjs/)
 </dom-module>
 
 <script>
-  Y.utils.PolymerBehaviors = Y.utils.Polymer || {}
-  Y.utils.PolymerBehaviors.SharedType = Y.utils.PolymerBehaviors.SharedType || {
-    properties: {
-      name: {
-        type: String,
-        notify: true
-      },
-      data: {
-        type: Object,
-        notify: true
-      },
-      type: {
-        type: String,
-        notify: true
-      }
-    }
-  }
-  Y.utils.PolymerBehaviors.SharedNativeType = Y.utils.PolymerBehaviors.SharedNativeType || [Y.utils.PolymerBehaviors.SharedType, {
+  Y.utils.PolymerBehaviors = Y.utils.PolymerBehaviors || {}
+  Y.utils.PolymerBehaviors.SharedNativeType = Y.utils.PolymerBehaviors.SharedNativeType || {
     observers: [
       '_onDataChange(data.*)'
     ],
@@ -410,19 +473,15 @@ Polymer Web Component for sharing data with [Yjs](https://github.com/y-js/yjs/)
       }
       return result
     }
-  }]
+  }
 </script>
 
-<!--
-`y-array`
-Configuration for a shared array property
 
-@demo demo/index.html 
--->
 <!--
-`y-type`
-Configuration for any shared type.
-Since Polymer does not allow custom types to be exported, the data property exports an Object: `{ "type" : type }`
+# &lt;y-type&gt;
+> Configuration for any Yjs type. This type does *not* export observable data!
+
+Polymer does not support the export of arbitrary data. Therefore, this type wraps the type in an object `{ type: yjsType }`. 
 
 @demo demo/index.html 
 -->
@@ -440,9 +499,24 @@ Since Polymer does not allow custom types to be exported, the data property expo
       ready: function () {
       },
       is: 'y-type',
-      behaviors: [Y.utils.PolymerBehaviors.SharedType],
-
       properties: {
+        /**
+         * Name of the shared property. The type will be available on `y.share[name]`
+         */
+        name: String,
+        /**
+         * Export of the wrapped shared type
+         * 
+         * @type {{type: yjsType }} 
+         */
+        data: {
+          type: Object,
+          notify: true
+        },
+        /**
+         * Module-name of the type to create
+         */
+        type: String
       },
       _sharedPropertyRemoved: function () {
         this.sharedType = null
@@ -457,8 +531,12 @@ Since Polymer does not allow custom types to be exported, the data property expo
 </dom-module>
 
 <!--
-`y-array`
-Configuration for a shared array property
+# &lt;y-array&gt;
+> Configuration for a y-array type that exports a shared javascript array
+
+It listens to Polymer events on the shared data.
+Therefore, you need to use Polymer to modify the data. E.g. use `this.splice('array', index, delLength, val)` instead of `this.array.splice(index, delLength, val)`.
+<a href="https://www.polymer-project.org/1.0/docs/devguide/model-data">Read the Polymer Docs on modifying data</a>   
 
 @demo demo/index.html 
 -->
@@ -493,14 +571,24 @@ Configuration for a shared array property
       behaviors: [Y.utils.PolymerBehaviors.SharedNativeType],
 
       properties: {
+        /**
+         * Name of the shared property. The type will be available on `y.share[name]`
+         */
+        name: String,
+        /**
+         * The shared array export
+         */
         data: {
           type: Array,
           notify: true
         },
+        /**
+         * Module-name of the shared type
+         */
         type: {
           type: String,
-          value: 'Array',
-          readOnly: true
+          readOnly: true,
+          value: 'Array'
         }
       },
       _sharedPropertyRemoved: function () {
@@ -521,8 +609,12 @@ Configuration for a shared array property
 </dom-module>
 
 <!--
-`y-map`
-Configuration for a shared map property
+# &lt;y-map&gt;
+> Configuration for a y-map type that exports a shared javascript object
+
+It listens to Polymer events on the shared data.
+Therefore, you need to use Polymer to modify the data. E.g. use `this.set('name', value)` instead of `this.name = value`.
+<a href="https://www.polymer-project.org/1.0/docs/devguide/model-data">Read the Polymer Docs on modifying data</a>   
 
 @demo demo/index.html 
 -->
@@ -557,10 +649,20 @@ Configuration for a shared map property
       behaviors: [Y.utils.PolymerBehaviors.SharedNativeType],
 
       properties: {
+        /**
+         * Name of the shared property. The type will be available on `y.share[name]`
+         */
+        name: String,
+        /**
+         * The shared map export
+         */
         data: {
           type: Object,
           notify: true
         },
+        /**
+         * Module-name of the shared type
+         */
         type: {
           type: String,
           value: 'Map',
