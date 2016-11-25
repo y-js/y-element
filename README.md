@@ -6,10 +6,10 @@
 
 This repository contains four elements:
 
-* [y-element](//y-js.org/y-element/components/y-element/#y-element) - Used to specify the database and connector information
-* [y-map](//y-js.org/y-element/components/y-element/#y-map) - Used to specify a map type. It exports the data as a shared javascript object
-* [y-array](//y-js.org/y-element/components/y-element/#y-array) - Used to specify an array type. It exports the data as a shared javascript array
-* [y-type](//y-js.org/y-element/components/y-element/#y-type) - Used to specify any Yjs type. The exported data does not support data-binding
+* [y-element](//y-js.org/y-element/components/y-element/#y-element) - Configures the database and connector information
+* [y-map](//y-js.org/y-element/components/y-element/#y-map) - Creates a map type. It exports the data as a shared javascript object
+* [y-array](//y-js.org/y-element/components/y-element/#y-array) - Creates an array type. It exports the data as a shared javascript array
+* [y-type](//y-js.org/y-element/components/y-element/#y-type) - Configuration for any Yjs type. It exports the Yjs type
 
 ##### Simple Yjs example in Javascript
 ```
