@@ -49,7 +49,7 @@ Before you start remember to install all y-* you want to use. In particular you 
 
 ```
 bower i --save y-element y-memory y-websockets-client
-``` 
+```
 
 @demo demo/index.html
 -->
@@ -160,7 +160,7 @@ bower i --save y-element y-memory y-websockets-client
             })
           }
           this.close().then(createInstance)
-          
+
           this._performReload = false
           this._reloading = true
         } catch (err) {
@@ -218,14 +218,14 @@ bower i --save y-element y-memory y-websockets-client
         },
         /**
          * The module-name of the connector. Overwrites `connector.name`
-         */ 
+         */
         connectorName: {
           type: String,
           notify: true,
           observer: '_queueReload'
         },
         /**
-         * Authentication information for the connector. Overwrites `connector.auth 
+         * Authentication information for the connector. Overwrites `connector.auth
          */
         connectorAuth: {
           type: String,
@@ -481,9 +481,9 @@ bower i --save y-element y-memory y-websockets-client
 # &lt;y-type&gt;
 > Configuration for any Yjs type. This type does *not* export observable data!
 
-Polymer does not support the export of arbitrary data. Therefore, this type wraps the type in an object `{ type: yjsType }`. 
+Polymer does not support the export of arbitrary data. Therefore, this type wraps the type in an object `{ type: yjsType }`.
 
-@demo demo/index.html 
+@demo demo/index.html
 -->
 <dom-module id="y-type">
   <template>
@@ -497,6 +497,9 @@ Polymer does not support the export of arbitrary data. Therefore, this type wrap
   <script>
     Polymer({
       ready: function () {
+        this._eventHandler = function (event) {
+          self.fire('on-event', event)
+        }
       },
       is: 'y-type',
       properties: {
@@ -506,8 +509,8 @@ Polymer does not support the export of arbitrary data. Therefore, this type wrap
         name: String,
         /**
          * Export of the wrapped shared type
-         * 
-         * @type {{type: yjsType }} 
+         *
+         * @type {{type: yjsType }}
          */
         data: {
           type: Object,
@@ -519,14 +522,26 @@ Polymer does not support the export of arbitrary data. Therefore, this type wrap
         type: String
       },
       _sharedPropertyRemoved: function () {
+        if (this.sharedType.unobserve != null) {
+          this.sharedType.unobserve(this._eventHandler)
+        }
         this.sharedType = null
         this.data = null
       },
       _sharedPropertyReady: function (type) {
         this.sharedType = type
+        if (this.sharedType.observe != null) {
+          this.sharedType.observe(this._eventHandler)
+        }
         this.data = { type: type }
       }
     });
+    /**
+     * Fired when the type is modified (same as type.observe(..))
+     *
+     * @event event
+     * @param {Object} event The event object (dependent on the type)
+     */
   </script>
 </dom-module>
 
@@ -536,9 +551,9 @@ Polymer does not support the export of arbitrary data. Therefore, this type wrap
 
 It listens to Polymer events on the shared data.
 Therefore, you need to use Polymer to modify the data. E.g. use `this.splice('array', index, delLength, val)` instead of `this.array.splice(index, delLength, val)`.
-<a href="https://www.polymer-project.org/1.0/docs/devguide/model-data">Read the Polymer Docs on modifying data</a>   
+<a href="https://www.polymer-project.org/1.0/docs/devguide/model-data">Read the Polymer Docs on modifying data</a>
 
-@demo demo/index.html 
+@demo demo/index.html
 -->
 <dom-module id="y-array">
   <template>
@@ -552,6 +567,7 @@ Therefore, you need to use Polymer to modify the data. E.g. use `this.splice('ar
   <script>
     Polymer({
       ready: function () {
+        var self = this
         // every instance should create its own mutualExcluse function / have a private token
         var token = true
         this._mutualExcluse = function mutualExcluse (f) {
@@ -565,6 +581,9 @@ Therefore, you need to use Polymer to modify the data. E.g. use `this.splice('ar
             }
             token = true
           }
+        }
+        this._eventHandler = function (event) {
+          self.fire('on-event', event)
         }
       },
       is: 'y-array',
@@ -592,6 +611,7 @@ Therefore, you need to use Polymer to modify the data. E.g. use `this.splice('ar
         }
       },
       _sharedPropertyRemoved: function () {
+        this.sharedType.unobserve(this._eventHandler)
         this.sharedType = null
         this._mutualExcluse(function () {
           this.data = null
@@ -600,10 +620,17 @@ Therefore, you need to use Polymer to modify the data. E.g. use `this.splice('ar
       _sharedPropertyReady: function (array) {
         var self = this
         this.sharedType = array
+        this.sharedType.observe(this._eventHandler)
         this._mutualExcluse(function () {
           self.data = self._addObserverToYArray('data', array)
         })
       }
+      /**
+       * Fired when the array types is modified (same as array.observe(..))
+       *
+       * @event event
+       * @param {Object} event The event object (fires insert and delete events)
+       */
     })
   </script>
 </dom-module>
@@ -614,9 +641,9 @@ Therefore, you need to use Polymer to modify the data. E.g. use `this.splice('ar
 
 It listens to Polymer events on the shared data.
 Therefore, you need to use Polymer to modify the data. E.g. use `this.set('name', value)` instead of `this.name = value`.
-<a href="https://www.polymer-project.org/1.0/docs/devguide/model-data">Read the Polymer Docs on modifying data</a>   
+<a href="https://www.polymer-project.org/1.0/docs/devguide/model-data">Read the Polymer Docs on modifying data</a>
 
-@demo demo/index.html 
+@demo demo/index.html
 -->
 <dom-module id="y-map">
   <template>
@@ -630,6 +657,7 @@ Therefore, you need to use Polymer to modify the data. E.g. use `this.set('name'
   <script>
     Polymer({
       ready: function () {
+        var self = this
         // every instance should create its own mutualExcluse function / have a private token
         var token = true
         this._mutualExcluse = function mutualExcluse (f) {
@@ -643,6 +671,9 @@ Therefore, you need to use Polymer to modify the data. E.g. use `this.set('name'
             }
             token = true
           }
+        }
+        this._eventHandler = function (event) {
+          self.fire('on-event', event)
         }
       },
       is: 'y-map',
@@ -670,6 +701,7 @@ Therefore, you need to use Polymer to modify the data. E.g. use `this.set('name'
         }
       },
       _sharedPropertyRemoved: function () {
+        this.sharedType.unobserve(this._eventHandler)
         this.sharedType = null
         this._mutualExcluse(function () {
           this.data = null
@@ -678,11 +710,17 @@ Therefore, you need to use Polymer to modify the data. E.g. use `this.set('name'
       _sharedPropertyReady: function (map) {
         var self = this
         this.sharedType = map
+        this.sharedType.observe(this._eventHandler)
         this._mutualExcluse(function () {
           self.data = self._addObserverToYMap('data', map)
         })
       }
+      /**
+       * Fired when the map types is modified (same as map.observe(..))
+       *
+       * @event event
+       * @param {Object} event The event object (fires set and delete events)
+       */
     })
   </script>
 </dom-module>
-
