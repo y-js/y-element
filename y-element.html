@@ -497,6 +497,7 @@ Polymer does not support the export of arbitrary data. Therefore, this type wrap
   <script>
     Polymer({
       ready: function () {
+        var self = this
         this._eventHandler = function (event) {
           self.fire('on-event', event)
         }
