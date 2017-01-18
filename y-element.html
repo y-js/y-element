@@ -499,7 +499,7 @@ Polymer does not support the export of arbitrary data. Therefore, this type wrap
       ready: function () {
         var self = this
         this._eventHandler = function (event) {
-          self.fire('on-event', event)
+          self.fire('event', event)
         }
       },
       is: 'y-type',
@@ -584,7 +584,7 @@ Therefore, you need to use Polymer to modify the data. E.g. use `this.splice('ar
           }
         }
         this._eventHandler = function (event) {
-          self.fire('on-event', event)
+          self.fire('event', event)
         }
       },
       is: 'y-array',
@@ -674,7 +674,7 @@ Therefore, you need to use Polymer to modify the data. E.g. use `this.set('name'
           }
         }
         this._eventHandler = function (event) {
-          self.fire('on-event', event)
+          self.fire('event', event)
         }
       },
       is: 'y-map',
