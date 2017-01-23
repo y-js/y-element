@@ -515,7 +515,8 @@ Polymer does not support the export of arbitrary data. Therefore, this type wrap
          */
         data: {
           type: Object,
-          notify: true
+          notify: true,
+          readOnly: true
         },
         /**
          * Module-name of the type to create
@@ -527,14 +528,14 @@ Polymer does not support the export of arbitrary data. Therefore, this type wrap
           this.sharedType.unobserve(this._eventHandler)
         }
         this.sharedType = null
-        this.data = null
+        this._setData(null)
       },
       _sharedPropertyReady: function (type) {
         this.sharedType = type
         if (this.sharedType.observe != null) {
           this.sharedType.observe(this._eventHandler)
         }
-        this.data = { type: type }
+        this._setData({ type: type })
       }
     });
     /**
@@ -600,7 +601,8 @@ Therefore, you need to use Polymer to modify the data. E.g. use `this.splice('ar
          */
         data: {
           type: Array,
-          notify: true
+          notify: true,
+          readOnly: true
         },
         /**
          * Module-name of the shared type
@@ -615,7 +617,7 @@ Therefore, you need to use Polymer to modify the data. E.g. use `this.splice('ar
         this.sharedType.unobserve(this._eventHandler)
         this.sharedType = null
         this._mutualExcluse(function () {
-          this.data = null
+          this._setData(null)
         })
       },
       _sharedPropertyReady: function (array) {
@@ -623,7 +625,7 @@ Therefore, you need to use Polymer to modify the data. E.g. use `this.splice('ar
         this.sharedType = array
         this.sharedType.observe(this._eventHandler)
         this._mutualExcluse(function () {
-          self.data = self._addObserverToYArray('data', array)
+          self._setData(self._addObserverToYArray('data', array))
         })
       }
       /**
@@ -690,7 +692,8 @@ Therefore, you need to use Polymer to modify the data. E.g. use `this.set('name'
          */
         data: {
           type: Object,
-          notify: true
+          notify: true,
+          readOnly: true
         },
         /**
          * Module-name of the shared type
@@ -705,7 +708,7 @@ Therefore, you need to use Polymer to modify the data. E.g. use `this.set('name'
         this.sharedType.unobserve(this._eventHandler)
         this.sharedType = null
         this._mutualExcluse(function () {
-          this.data = null
+          this._setData(null)
         })
       },
       _sharedPropertyReady: function (map) {
@@ -713,7 +716,7 @@ Therefore, you need to use Polymer to modify the data. E.g. use `this.set('name'
         this.sharedType = map
         this.sharedType.observe(this._eventHandler)
         this._mutualExcluse(function () {
-          self.data = self._addObserverToYMap('data', map)
+          self._setData(self._addObserverToYMap('data', map))
         })
       }
       /**
