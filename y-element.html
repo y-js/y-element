@@ -1,7 +1,4 @@
 <link rel="import" href="../polymer/polymer.html">
-<script src="../yjs/y.js"></script>
-<script src="../y-array/y-array.js"></script>
-<script src="../y-map/y-map.js"></script>
 
 <!--
 # &lt;y-element&gt; <iframe src="https://ghbtns.com/github-btn.html?user=y-js&repo=y-element&type=star&count=true" frameborder="0" scrolling="0" width="170px" height="20px"></iframe>
@@ -36,6 +33,10 @@ Y({
 
 ##### Same example in Polymer
 ```
+<link rel="import" href="../bower_components/y-element/y-element.html">
+<script src="../bower_components/yjs/y.js"></script>
+<script src="../bower_components/y-map/y-map.js"></script>
+
 <y-element
   db-name="memory"
   connector-name="websockets-client"
@@ -45,10 +46,10 @@ Y({
 ```
 
 ### Before you start
-Before you start remember to install all y-* you want to use. In particular you need to install a connector (e.g. `y-websockets-client`), and a database adapter (e.g. `y-memory`). `yjs`, `y-map`, and `y-array` are dependencies of `y-element`.
+Before you start remember to install all y-* modules you want to use. In particular you need to install a connector (e.g. `y-websockets-client`), and a database adapter (e.g. `y-memory`). `yjs`, `y-map`, and `y-array` are dependencies of `y-element`.
 
 ```
-bower i --save y-element y-memory y-websockets-client
+bower i --save y-element yjs y-map y-memory y-websockets-client
 ```
 
 @demo demo/index.html
