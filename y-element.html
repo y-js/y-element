@@ -615,10 +615,11 @@ Therefore, you need to use Polymer to modify the data. E.g. use `this.splice('ar
         }
       },
       _sharedPropertyRemoved: function () {
+        var self = this
         this.sharedType.unobserve(this._eventHandler)
         this.sharedType = null
         this._mutualExcluse(function () {
-          this._setData(null)
+          self._setData(null)
         })
       },
       _sharedPropertyReady: function (array) {
