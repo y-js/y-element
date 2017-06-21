@@ -1,0 +1,34 @@
+{
+  "name": "y-text",
+  "version": "9.4.0",
+  "homepage": "http://y-js.org",
+  "authors": [
+    "Kevin Jahns <kevin.jahns@rwth-aachen.de>"
+  ],
+  "description": "Text type for Yjs",
+  "main": "./y-text.js",
+  "keywords": [
+    "Yjs",
+    "OT",
+    "Collaboration",
+    "Synchronization",
+    "ShareJS",
+    "Coweb",
+    "Concurrency"
+  ],
+  "license": "MIT",
+  "ignore": [],
+  "dependencies": {
+    "yjs": "^12.0.0",
+    "y-array": "^10.0.0"
+  },
+  "_release": "9.4.0",
+  "_resolution": {
+    "type": "version",
+    "tag": "v9.4.0",
+    "commit": "53c9e4bba9d1a542831a6f660a68bbf4a7e0ffe2"
+  },
+  "_source": "https://github.com/y-js/y-text.git",
+  "_target": "^9.0.2",
+  "_originalSource": "y-text"
+}
