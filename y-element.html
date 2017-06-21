@@ -412,7 +412,11 @@ bower i --save y-element yjs y-map y-array y-memory y-websockets-client
               }
             })
           } else if (action.startsWith('#')) {
-            debugger // ignore this? we already handle splices
+            var index = Number(action.slice(1))
+            type.delete(index, 1)
+            type.insert(index, [getConvertType(change.value)])
+            var t = type.get(index)
+            fillType(t, change.value)
           } else {
             var val = change.value
             type.set(action, getConvertType(val))
