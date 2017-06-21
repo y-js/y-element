@@ -11,6 +11,7 @@ This repository contains four elements:
 * [y-array](//y-js.org/y-element/components/y-element/#y-array) - Creates an array type. It exports the data as a shared javascript array
 * [y-type](//y-js.org/y-element/components/y-element/#y-type) - Configuration for any Yjs type. It exports the Yjs type
 
+
 ##### Simple Yjs example in Javascript
 ```
 Y({
@@ -31,10 +32,6 @@ Y({
 
 ##### Same example in Polymer
 ```
-<link rel="import" href="../bower_components/y-element/y-element.html">
-<script src="../bower_components/yjs/y.js"></script>
-<script src="../bower_components/y-map/y-map.js"></script>
-
 <y-element
   db-name="memory"
   connector-name="websockets-client"
@@ -44,10 +41,24 @@ Y({
 ```
 
 ### Before you start
-Before you start remember to install all y-* you want to use. In particular you need to install a connector (e.g. `y-websockets-client`), a database adapter (e.g. `y-memory`), and all types you want to use.
+Before you start remember to install all y-* modules you want to use.
+In particular you need to install a connector (e.g. `y-websockets-client`), and
+a database adapter (e.g. `y-memory`).
 
 ```
-bower i --save y-element yjs y-map y-memory y-websockets-client
+bower i --save y-element yjs y-map y-array y-memory y-websockets-client
+```
+
+&lt;y-element&gt;@>2.0.0 no longer supports automatic module finding. You need to explicitly include all y-* modules!
+
+```html
+<script src="../bower_components/yjs/y.js"></script>
+<script src="../bower_components/y-map/y-map.js"></script>
+<script src="../bower_components/y-array/y-array.js"></script>
+<script src="../bower_components/y-memory/y-memory.js"></script>
+<script src="../bower_components/y-websockets-client/y-websockets-client.js"></script>
+
+<link rel="import" href="../bower_components/y-element/y-element.html">
 ```
 
 ## Contribute
